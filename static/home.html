@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14110f" />
+  <meta name="description" content="KEREM Spa es una aplicación web para consultar servicios de masajes reductivos y relajantes, agendar citas y gestionar tu atención en KEREM Spa." />
+  <title>KEREM Spa | Masajes reductivos y relajantes</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="icon" href="/static/icons/icon-192.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/styles.css?v=20261125b" />
+  <style>
+    .landing { max-width: 980px; margin: 0 auto; padding: 24px 16px 56px; }
+    .hero { padding: 28px 0 24px; display: grid; gap: 24px; }
+    .hero h1 { font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.05; margin: 8px 0 12px; }
+    .hero p { color: var(--muted); font-size: 1rem; line-height: 1.75; max-width: 680px; }
+    .eyebrow { color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+    .grid-3 { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 28px; }
+    .feature { padding: 20px; }
+    .feature h3 { font-size: 1rem; margin: 0 0 8px; }
+    .feature p { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.65; }
+    .section { margin-top: 28px; }
+    .section h2 { font-size: 1.35rem; margin: 0 0 10px; }
+    .section p, .section li { color: var(--muted); line-height: 1.75; font-size: .95rem; }
+    .section ul { padding-left: 20px; margin: 10px 0 0; }
+    .footer { margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted-2); font-size: .85rem; display:flex; gap:12px; flex-wrap:wrap; justify-content:space-between; }
+    .footer a { color: var(--muted); text-decoration: underline; }
+    .badge { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.82rem; background:rgba(255,255,255,.02); }
+  </style>
+</head>
+<body>
+  <div class="landing">
+    <header class="flex justify-between items-center gap-3" style="flex-wrap:wrap;">
+      <div class="brand-mark">
+        <div class="brand-icon">K</div>
+        <div>
+          <p class="brand-title">KEREM Spa</p>
+          <p class="brand-sub">Masajes reductivos y relajantes</p>
+        </div>
+      </div>
+      <a href="/app" class="btn btn-brand btn-sm">Iniciar sesión</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="badge">Aplicación oficial de KEREM Spa</div>
+          <h1>Bienestar y agenda en <span style="color:var(--brand);">KEREM Spa</span></h1>
+          <p><strong style="color:var(--text);">KEREM Spa</strong> es una aplicación web para clientes y administradores de KEREM Spa. Su propósito es permitir consultar los servicios de masajes reductivos y relajantes, iniciar sesión de forma segura, agendar citas, revisar el estado de las reservas y recibir notificaciones relacionadas con la atención en el spa.</p>
+          <div class="cta-row">
+            <a href="/app" class="btn btn-brand">Entrar a la app</a>
+            <a href="/privacy" class="btn btn-ghost">Política de privacidad</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-3" aria-label="Funciones principales">
+        <article class="card feature">
+          <h3>Agendar citas</h3>
+          <p>Los clientes pueden registrarse o iniciar sesión para reservar servicios disponibles en los horarios configurados por KEREM Spa.</p>
+        </article>
+        <article class="card feature">
+          <h3>Gestionar reservas</h3>
+          <p>La aplicación permite consultar citas próximas, historial, estado de la reserva y notificaciones dentro de la cuenta.</p>
+        </article>
+        <article class="card feature">
+          <h3>Acceso seguro</h3>
+          <p>KEREM Spa ofrece acceso con correo y contraseña, y opcionalmente con Google, usando los datos necesarios para autenticar la cuenta.</p>
+        </article>
+      </section>
+
+      <section class="section card" style="padding:22px;">
+        <h2>¿Para qué sirve esta aplicación?</h2>
+        <p>KEREM Spa utiliza esta aplicación para organizar la experiencia de atención de sus clientes. La app está diseñada para:</p>
+        <ul>
+          <li>Mostrar información de servicios ofrecidos por KEREM Spa.</li>
+          <li>Permitir el registro e inicio de sesión de clientes.</li>
+          <li>Agendar, consultar y cancelar citas según disponibilidad.</li>
+          <li>Permitir al personal autorizado administrar agenda, pacientes y servicios.</li>
+          <li>Enviar notificaciones relacionadas con citas y actividad de la cuenta.</li>
+        </ul>
+      </section>
+
+      <section class="section card" style="padding:22px;">
+        <h2>Uso de datos y transparencia</h2>
+        <p>KEREM Spa solo solicita los datos necesarios para operar la cuenta y la agenda de servicios, como nombre, correo electrónico, teléfono y datos de citas. Si usas Google para iniciar sesión, la app recibe información básica de perfil/correo para autenticarte. Puedes consultar los detalles en nuestra <a href="/privacy">Política de Privacidad</a> y <a href="/terms">Condiciones del Servicio</a>.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>© 2026 KEREM Spa. Aplicación de agenda y servicios.</div>
+      <div class="flex gap-3" style="flex-wrap:wrap;">
+        <a href="/privacy">Privacidad</a>
+        <a href="/terms">Condiciones</a>
+        <a href="/app">Iniciar sesión</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
