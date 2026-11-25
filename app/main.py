@@ -50,7 +50,7 @@ async def frontend_cache_control(request, call_next):
     """Control de cache para PWA: shell sin cache agresivo, assets versionados cacheables."""
     response = await call_next(request)
     path = request.url.path
-    if path in ("/", "/dashboard", "/static/index.html", "/static/dashboard.html"):
+    if path in ("/", "/dashboard", "/privacy", "/terms", "/static/index.html", "/static/dashboard.html", "/static/privacy.html", "/static/terms.html"):
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
     elif path == "/static/sw.js":
         response.headers["Cache-Control"] = "no-cache, must-revalidate"
@@ -104,3 +104,13 @@ def service_worker() -> FileResponse:
 @app.get("/manifest.json", include_in_schema=False)
 def manifest() -> FileResponse:
     return FileResponse(STATIC_DIR / "manifest.json", media_type="application/manifest+json")
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy() -> FileResponse:
+    return FileResponse(STATIC_DIR / "privacy.html")
+
+
+@app.get("/terms", include_in_schema=False)
+def terms() -> FileResponse:
+    return FileResponse(STATIC_DIR / "terms.html")

@@ -4,6 +4,8 @@ const SHELL = [
   "/dashboard",
   "/static/index.html",
   "/static/dashboard.html",
+  "/static/privacy.html",
+  "/static/terms.html",
   "/static/styles.css?v=20261125a",
   "/static/app.js?v=20261125a",
   "/static/admin.js?v=20261125a",
