@@ -64,8 +64,7 @@ a { color: var(--brand); }
   position: sticky; top: 0; z-index: 30;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: calc(8px + env(safe-area-inset-top)) 0 14px;
-  background: linear-gradient(to bottom, rgba(20,17,15,.96), rgba(20,17,15,.82) 70%, transparent);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(to bottom, rgba(20,17,15,.98), rgba(20,17,15,.92) 70%, rgba(20,17,15,0));
 }
 .brand-mark { display: flex; align-items: center; gap: 10px; }
 .brand-icon {
@@ -221,10 +220,10 @@ textarea.input { min-height: 88px; resize: vertical; }
   display: grid; place-items: center; border: 2px solid var(--surface);
 }
 .notif-panel {
-  position: fixed; left: 12px; right: 12px; top: calc(64px + env(safe-area-inset-top, 0px));
-  width: auto; max-width: 420px; margin: 0 auto;
+  position: fixed; inset: calc(64px + env(safe-area-inset-top, 0px)) 12px auto 12px;
+  width: auto; max-width: 420px; margin: 0 auto; box-sizing: border-box;
   background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
-  overflow: hidden; z-index: 80; max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px));
+  overflow: hidden; z-index: 90; max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px));
 }
 .notif-panel .notif-list { max-height: calc(100dvh - 150px - env(safe-area-inset-top, 0px)); }
 @media (min-width: 640px) {
