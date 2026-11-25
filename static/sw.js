@@ -1,4 +1,4 @@
-const SHELL_CACHE = "kerem-shell-v2";
+const SHELL_CACHE = "kerem-shell-v3";
 const SHELL = [
   "/",
   "/app",
@@ -11,7 +11,7 @@ const SHELL = [
   "/static/dashboard.html",
   "/static/privacy.html",
   "/static/terms.html",
-  "/static/styles.css?v=20261125b",
+  "/static/styles.css?v=20261125c",
   "/static/app.js?v=20261125a",
   "/static/admin.js?v=20261125a",
   "/static/manifest.json",
