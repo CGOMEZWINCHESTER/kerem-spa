@@ -199,13 +199,13 @@ def _page_html(status_label: str, message: str) -> str:
     msg = _html.escape(message)
     return f"""
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><title>KEREM</title></head>
-<body style="font-family:system-ui;display:grid;place-items:center;
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KEREM</title></head>
+<body style="font-family:system-ui;background:#14110f;color:#f5efe7;display:grid;place-items:center;
 height:100vh;margin:0;text-align:center">
   <div>
-    <h2>{status_label.upper()}</h2>
-    <p>{msg}</p>
-    <a href="/">Volver al inicio</a>
+    <h2 style="color:#d4af7a;margin-bottom:8px">{status_label.upper()}</h2>
+    <p style="color:#b4a89a">{msg}</p>
+    <a href="/" style="color:#d4af7a">Volver al inicio</a>
   </div>
 </body></html>
 """
