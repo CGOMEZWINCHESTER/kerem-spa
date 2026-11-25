@@ -16,28 +16,26 @@ en un unico origen):
 from __future__ import annotations
 
 import secrets
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from jose import JWTError, jwt
 
 from app.config import settings
 from app.database import get_session
 from app.models import Role, User
 from app.security import create_access_token, get_user_by_email
-from sqlmodel import Session
 
 router = APIRouter(prefix="/auth/google", tags=["auth"])
 
-# Guarda los valores de "state" emitidos y no consumidos (para validar
-# la respuesta del callback y evitar CSRF). Suficiente para una instancia.
-_STATE_STORE: set[str] = set()
-
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_STATE_MAX_AGE_MINUTES = 10
 
 
 def _google_enabled() -> bool:
@@ -47,6 +45,24 @@ def _google_enabled() -> bool:
         and settings.google_client_secret
         and settings.google_redirect_uri
     )
+
+
+def _build_state() -> str:
+    """Crea un state firmado y con expiracion para validar el callback en serverless."""
+    payload = {
+        "nonce": secrets.token_urlsafe(16),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=_STATE_MAX_AGE_MINUTES),
+        "purpose": "google_oauth",
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+
+
+def _verify_state(state: str) -> bool:
+    try:
+        payload = jwt.decode(state, settings.secret_key, algorithms=[settings.algorithm])
+        return payload.get("purpose") == "google_oauth"
+    except JWTError:
+        return False
 
 
 @router.get("/status")
@@ -64,9 +80,6 @@ def google_login() -> RedirectResponse:
             detail="Inicio de sesion con Google no configurado.",
         )
 
-    state = secrets.token_urlsafe(16)
-    _STATE_STORE.add(state)
-
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_redirect_uri,
@@ -74,7 +87,7 @@ def google_login() -> RedirectResponse:
         "scope": "openid email profile",
         "access_type": "online",
         "prompt": "select_account",
-        "state": state,
+        "state": _build_state(),
     }
     return RedirectResponse(f"{_GOOGLE_AUTH_URL}?{urlencode(params)}")
 
@@ -85,11 +98,10 @@ def google_callback(code: str, state: str) -> HTMLResponse:
     if not _google_enabled():
         return HTMLResponse(_page_html("error", "Google no esta configurado."))
 
-    if state not in _STATE_STORE:
+    if not _verify_state(state):
         return HTMLResponse(
-            _page_html("error", "Solicitud invalida (state no coincide).")
+            _page_html("error", "Solicitud invalida o expirada. Intenta iniciar sesion de nuevo.")
         )
-    _STATE_STORE.discard(state)
 
     token_data = _exchange_code_for_token(code)
     idinfo = _verify_id_token(token_data)
