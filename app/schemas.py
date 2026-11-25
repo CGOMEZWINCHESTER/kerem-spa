@@ -114,6 +114,9 @@ class AppointmentRead(SQLModel):
     notes: str | None
     service_name: str | None = None
     service_price: float | None = None
+    client_name: str | None = None
+    client_phone: str | None = None
+    client_email: str | None = None
     created_at: datetime
 
 
@@ -130,6 +133,40 @@ class Slot(SQLModel):
 
     starts_at: datetime
     ends_at: datetime
+
+
+# --------------------------------------------------------------------------
+# Reportes admin
+# --------------------------------------------------------------------------
+class ReportSummary(SQLModel):
+    total_appointments: int
+    completed_appointments: int
+    pending_appointments: int
+    approved_appointments: int
+    cancelled_appointments: int
+    total_revenue: float
+    completed_revenue: float
+    expected_revenue: float
+
+
+class ReportDay(SQLModel):
+    date: str
+    total_appointments: int
+    completed_appointments: int
+    pending_appointments: int
+    approved_appointments: int
+    cancelled_appointments: int
+    total_revenue: float
+    completed_revenue: float
+    expected_revenue: float
+
+
+class ReportResponse(SQLModel):
+    period: str
+    start_date: str
+    end_date: str
+    summary: ReportSummary
+    days: list[ReportDay]
 
 
 # --------------------------------------------------------------------------

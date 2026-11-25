@@ -1,6 +1,7 @@
 """Rutas de administracion: pacientes, citas y servicios (CRUD)."""
 from __future__ import annotations
 
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,6 +28,9 @@ from app.schemas import (
     ClinicalHistoryUpdate,
     PatientRecordCreate,
     PatientRecordRead,
+    ReportResponse,
+    ReportSummary,
+    ReportDay,
     ServiceCreate,
     ServiceRead,
     ServiceUpdate,
@@ -272,7 +276,7 @@ def list_all_appointments(
     """Lista todas las citas, opcionalmente filtradas por estado."""
     stmt = (
         select(Appointment)
-        .options(selectinload(Appointment.service))
+        .options(selectinload(Appointment.service), selectinload(Appointment.user))
         .order_by(Appointment.starts_at)
     )
     if status_filter is not None:
@@ -293,7 +297,12 @@ def update_appointment(
     Al reagendar (cambiar starts_at) se recalcula ends_at segun la duracion
     del servicio y se valida de nuevo contra cruces de horario.
     """
-    appointment = session.get(Appointment, appointment_id)
+    stmt = (
+        select(Appointment)
+        .where(Appointment.id == appointment_id)
+        .options(selectinload(Appointment.service), selectinload(Appointment.user))
+    )
+    appointment = session.exec(stmt).first()
     if appointment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada."
@@ -338,6 +347,108 @@ def update_appointment(
         notify_status_change(session, appointment, appointment.service)
         session.commit()
     return _to_appointment_read(appointment)
+
+
+# --------------------------------------------------------------------------
+# Reportes / caja
+# --------------------------------------------------------------------------
+def _period_bounds(period: str, ref: date) -> tuple[datetime, datetime, date, date]:
+    if period == "daily":
+        start_d = ref
+        end_d = ref
+    elif period == "weekly":
+        start_d = ref - timedelta(days=ref.weekday())
+        end_d = start_d + timedelta(days=6)
+    elif period == "monthly":
+        start_d = ref.replace(day=1)
+        if start_d.month == 12:
+            next_month = start_d.replace(year=start_d.year + 1, month=1, day=1)
+        else:
+            next_month = start_d.replace(month=start_d.month + 1, day=1)
+        end_d = next_month - timedelta(days=1)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Periodo inválido. Usa daily, weekly o monthly.")
+    start_dt = datetime.combine(start_d, time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(end_d + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    return start_dt, end_dt, start_d, end_d
+
+
+@router.get("/reports", response_model=ReportResponse)
+def get_reports(
+    session: Annotated[Session, Depends(get_session)],
+    period: str = "daily",
+    date_ref: str | None = None,
+) -> ReportResponse:
+    """Reporte de citas e ingresos por día/semana/mes."""
+    try:
+        ref = date.fromisoformat(date_ref) if date_ref else utc_now().date()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="date_ref inválida. Usa YYYY-MM-DD.")
+    start_dt, end_dt, start_d, end_d = _period_bounds(period, ref)
+
+    stmt = (
+        select(Appointment)
+        .options(selectinload(Appointment.service))
+        .where(Appointment.starts_at >= start_dt, Appointment.starts_at < end_dt)
+        .order_by(Appointment.starts_at)
+    )
+    appts = list(session.exec(stmt).all())
+
+    days: dict[str, dict] = {}
+    cur = start_d
+    while cur <= end_d:
+        k = cur.isoformat()
+        days[k] = {
+            "date": k,
+            "total_appointments": 0,
+            "completed_appointments": 0,
+            "pending_appointments": 0,
+            "approved_appointments": 0,
+            "cancelled_appointments": 0,
+            "total_revenue": 0.0,
+            "completed_revenue": 0.0,
+            "expected_revenue": 0.0,
+        }
+        cur += timedelta(days=1)
+
+    for a in appts:
+        day_key = a.starts_at.astimezone(timezone.utc).date().isoformat()
+        if day_key not in days:
+            continue
+        d = days[day_key]
+        price = float(a.service.price) if a.service and a.service.price is not None else 0.0
+        d["total_appointments"] += 1
+        d["total_revenue"] += price
+        if a.status == AppointmentStatus.COMPLETED:
+            d["completed_appointments"] += 1
+            d["completed_revenue"] += price
+        elif a.status == AppointmentStatus.PENDING:
+            d["pending_appointments"] += 1
+            d["expected_revenue"] += price
+        elif a.status == AppointmentStatus.APPROVED:
+            d["approved_appointments"] += 1
+            d["expected_revenue"] += price
+        elif a.status == AppointmentStatus.CANCELLED:
+            d["cancelled_appointments"] += 1
+
+    day_list = [ReportDay(**v) for v in days.values()]
+    summary = ReportSummary(
+        total_appointments=sum(d.total_appointments for d in day_list),
+        completed_appointments=sum(d.completed_appointments for d in day_list),
+        pending_appointments=sum(d.pending_appointments for d in day_list),
+        approved_appointments=sum(d.approved_appointments for d in day_list),
+        cancelled_appointments=sum(d.cancelled_appointments for d in day_list),
+        total_revenue=round(sum(d.total_revenue for d in day_list), 2),
+        completed_revenue=round(sum(d.completed_revenue for d in day_list), 2),
+        expected_revenue=round(sum(d.expected_revenue for d in day_list), 2),
+    )
+    return ReportResponse(
+        period=period,
+        start_date=start_d.isoformat(),
+        end_date=end_d.isoformat(),
+        summary=summary,
+        days=day_list,
+    )
 
 
 # --------------------------------------------------------------------------

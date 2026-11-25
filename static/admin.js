@@ -55,7 +55,7 @@ function showPanel(name) {
   $(`#panel-${name}`)?.classList.remove("hidden");
   $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
 }
-function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125a"; }
+function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125e"; }
 
 // Modal
 let modalOkHandler = null;
@@ -93,8 +93,9 @@ async function loadAppointments(f = "") {
       <div class="list-card">
         <div class="list-row">
           <div>
-            <p class="list-title">${esc(a.service_name || "Servicio")} <span class="small muted">· #${a.user_id}</span></p>
-            <p class="list-meta">${dmy(a.starts_at)} → ${dmy(a.ends_at)}</p>
+            <p class="list-title">${esc(a.service_name || "Servicio")}</p>
+            <p class="list-meta"><strong style="color:var(--text)">${esc(a.client_name || "Cliente")}</strong>${a.client_phone ? ` · <a href="tel:${esc(a.client_phone)}" style="color:var(--brand)">${esc(a.client_phone)}</a>` : ""}</p>
+            <p class="list-meta">${a.client_email ? esc(a.client_email) + " · " : ""}${dmy(a.starts_at)}</p>
           </div>
           ${statusBadge(a.status)}
         </div>
@@ -387,6 +388,47 @@ async function patientAction(btn) {
   } catch (err) { toast(err.message); }
 }
 
+// Reportes
+async function loadReports() {
+  const period = $("#reportPeriod")?.value || "daily";
+  const dateRef = $("#reportDate")?.value || new Date().toISOString().slice(0,10);
+  const summary = $("#reportSummary");
+  const days = $("#reportDays");
+  const range = $("#reportRange");
+  summary.innerHTML = '<div class="empty-state"><p class="small muted">Cargando reporte…</p></div>';
+  days.innerHTML = "";
+  try {
+    const r = await api(`/admin/reports?period=${encodeURIComponent(period)}&date_ref=${encodeURIComponent(dateRef)}`);
+    range.textContent = `${r.start_date} a ${r.end_date}`;
+    const cards = [
+      ["Citas totales", r.summary.total_appointments],
+      ["Completadas", r.summary.completed_appointments],
+      ["Pend./Aprob.", r.summary.pending_appointments + r.summary.approved_appointments],
+      ["Canceladas", r.summary.cancelled_appointments],
+      ["Ingreso completado", fmtCurrency(r.summary.completed_revenue)],
+      ["Ingreso esperado", fmtCurrency(r.summary.expected_revenue)],
+    ];
+    summary.innerHTML = cards.map(([l,v]) => `<div class="detail-cell"><div class="detail-lbl">${esc(l)}</div><div class="detail-val" style="font-size:1.1rem;">${esc(String(v))}</div></div>`).join("");
+    if (!r.days.length) { days.innerHTML = '<div class="empty-state"><p class="small muted">Sin datos en el periodo.</p></div>'; return; }
+    days.innerHTML = r.days.map((d) => `
+      <div class="list-card" style="margin-bottom:10px;">
+        <div class="list-row">
+          <div>
+            <p class="list-title">${esc(d.date)}</p>
+            <p class="list-meta">${d.total_appointments} citas · ${d.completed_appointments} completadas · ${d.cancelled_appointments} canceladas</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-weight:700;color:var(--brand);">${fmtCurrency(d.completed_revenue)}</div>
+            <div class="small muted">Esperado ${fmtCurrency(d.expected_revenue)}</div>
+          </div>
+        </div>
+      </div>`).join("");
+  } catch (err) {
+    summary.innerHTML = "";
+    days.innerHTML = `<div class="empty-state"><p class="small" style="color:var(--danger)">${esc(err.message)}</p></div>`;
+  }
+}
+
 // Servicios
 async function loadServices() {
   const ctn = $("#serviceGrid");
@@ -497,13 +539,21 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("online", setOfflineUI);
   window.addEventListener("offline", setOfflineUI);
 
-  $$(".nav-btn[data-tab]").forEach((b) => b.addEventListener("click", () => showPanel(b.dataset.tab)));
+  $$(".nav-btn[data-tab]").forEach((b) => b.addEventListener("click", () => {
+    const tab = b.dataset.tab; showPanel(tab);
+    if (tab === "citas") loadAppointments($("#filterStatus")?.value || "");
+    else if (tab === "pacientes") loadPatients($("#patientSearch")?.value || "");
+    else if (tab === "reportes") loadReports();
+    else if (tab === "servicios") loadServices();
+  }));
   $("#adminLogout")?.addEventListener("click", logout);
   $("#adminLogoutM")?.addEventListener("click", logout);
   $("#filterStatus").addEventListener("change", (e) => loadAppointments(e.target.value));
   $("#newPatientBtn").addEventListener("click", () => openPatientForm());
   $("#newServiceBtn").addEventListener("click", () => openServiceForm());
   $("#patientSearch").addEventListener("input", debounce((e) => loadPatients(e.target.value), 300));
+  $("#btnLoadReport")?.addEventListener("click", loadReports);
+  const rd = $("#reportDate"); if (rd && !rd.value) rd.value = new Date().toISOString().slice(0,10);
   $("#modalCancel").addEventListener("click", closeModal);
   $("#modalCloseX")?.addEventListener("click", closeModal);
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });

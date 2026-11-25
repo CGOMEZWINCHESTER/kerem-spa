@@ -42,7 +42,7 @@ def _parse_time(value: str) -> time:
 
 
 def _to_appointment_read(appt: Appointment) -> AppointmentRead:
-    """Serializa una cita incluyendo datos del servicio."""
+    """Serializa una cita incluyendo datos del servicio y cliente."""
     return AppointmentRead(
         id=appt.id,
         user_id=appt.user_id,
@@ -53,6 +53,9 @@ def _to_appointment_read(appt: Appointment) -> AppointmentRead:
         notes=appt.notes,
         service_name=appt.service.name if appt.service else None,
         service_price=appt.service.price if appt.service else None,
+        client_name=appt.user.full_name if appt.user else None,
+        client_phone=appt.user.phone if appt.user else None,
+        client_email=appt.user.email if appt.user else None,
         created_at=appt.created_at,
     )
 
