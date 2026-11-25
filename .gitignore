@@ -1,0 +1,12 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite3
+.DS_Store
+.vercel
+
+# local docs
+Guia_KEREM_*.pdf
