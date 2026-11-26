@@ -202,3 +202,18 @@ class Notification(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
 
     user: User = Relationship(back_populates="notifications")
+
+
+class AgendaSettings(SQLModel, table=True):
+    """Configuración singleton de agenda/horarios disponibles."""
+
+    __tablename__ = "agenda_settings"
+
+    id: int | None = Field(default=1, primary_key=True)
+    start_time: str = Field(default="09:00", max_length=5)
+    end_time: str = Field(default="20:00", max_length=5)
+    step_minutes: int = Field(default=30)
+    lunch_start: str | None = Field(default="13:00", max_length=5)
+    lunch_end: str | None = Field(default="14:00", max_length=5)
+    working_days: str = Field(default="0,1,2,3,4,5", max_length=32)  # lunes=0 ... domingo=6
+    updated_at: datetime = Field(default_factory=utc_now)

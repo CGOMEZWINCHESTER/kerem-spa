@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 
 from app.database import get_session
 from app.models import (
+    AgendaSettings,
     Appointment,
     AppointmentStatus,
     ClinicalHistory,
@@ -22,6 +23,8 @@ from app.notifications import notify_status_change
 from app.routers.appointment import _to_appointment_read
 from app.schemas import (
     AdminAppointmentUpdate,
+    AgendaSettingsRead,
+    AgendaSettingsUpdate,
     AppointmentRead,
     ClinicalHistoryCreate,
     ClinicalHistoryRead,
@@ -449,6 +452,87 @@ def get_reports(
         summary=summary,
         days=day_list,
     )
+
+
+# --------------------------------------------------------------------------
+# Agenda / horarios disponibles
+# --------------------------------------------------------------------------
+def _get_or_create_agenda(session: Session) -> AgendaSettings:
+    agenda = session.get(AgendaSettings, 1)
+    if agenda is None:
+        from app.config import settings
+
+        agenda = AgendaSettings(
+            id=1,
+            start_time=settings.agenda_start,
+            end_time=settings.agenda_end,
+            step_minutes=settings.agenda_step_minutes,
+            lunch_start=settings.agenda_lunch_start,
+            lunch_end=settings.agenda_lunch_end,
+            working_days="0,1,2,3,4,5",
+        )
+        session.add(agenda)
+        session.commit()
+        session.refresh(agenda)
+    return agenda
+
+
+def _agenda_to_read(agenda: AgendaSettings) -> AgendaSettingsRead:
+    days = [int(x) for x in agenda.working_days.split(",") if x.strip().lstrip("-").isdigit()]
+    days = [d for d in days if 0 <= d <= 6]
+    if not days:
+        days = [0, 1, 2, 3, 4, 5]
+    return AgendaSettingsRead(
+        start_time=agenda.start_time,
+        end_time=agenda.end_time,
+        step_minutes=agenda.step_minutes,
+        lunch_start=agenda.lunch_start,
+        lunch_end=agenda.lunch_end,
+        working_days=sorted(set(days)),
+        updated_at=agenda.updated_at,
+    )
+
+
+@router.get("/agenda", response_model=AgendaSettingsRead)
+def get_agenda_settings(session: Annotated[Session, Depends(get_session)]) -> AgendaSettingsRead:
+    return _agenda_to_read(_get_or_create_agenda(session))
+
+
+@router.put("/agenda", response_model=AgendaSettingsRead)
+def update_agenda_settings(
+    payload: AgendaSettingsUpdate,
+    session: Annotated[Session, Depends(get_session)],
+) -> AgendaSettingsRead:
+    agenda = _get_or_create_agenda(session)
+    days = sorted({int(d) for d in payload.working_days if 0 <= int(d) <= 6})
+    if not days:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selecciona al menos un día laboral.")
+    start = datetime.strptime(payload.start_time, "%H:%M").time()
+    end = datetime.strptime(payload.end_time, "%H:%M").time()
+    if end <= start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La hora de fin debe ser mayor que la de inicio.")
+    lunch_start = lunch_end = None
+    if payload.lunch_start or payload.lunch_end:
+        if not (payload.lunch_start and payload.lunch_end):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Define inicio y fin de comida, o deja ambos vacíos.")
+        lunch_start = datetime.strptime(payload.lunch_start, "%H:%M").time()
+        lunch_end = datetime.strptime(payload.lunch_end, "%H:%M").time()
+        if lunch_end <= lunch_start:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El fin de comida debe ser mayor que el inicio.")
+        if lunch_start < start or lunch_end > end:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La comida debe estar dentro del horario laboral.")
+
+    agenda.start_time = payload.start_time
+    agenda.end_time = payload.end_time
+    agenda.step_minutes = payload.step_minutes
+    agenda.lunch_start = payload.lunch_start
+    agenda.lunch_end = payload.lunch_end
+    agenda.working_days = ",".join(str(d) for d in days)
+    agenda.updated_at = utc_now()
+    session.add(agenda)
+    session.commit()
+    session.refresh(agenda)
+    return _agenda_to_read(agenda)
 
 
 # --------------------------------------------------------------------------

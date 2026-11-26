@@ -163,10 +163,14 @@ function goToStep(n) {
   currentStep = n;
   ["#wStep1", "#wStep2", "#wStep3"].forEach((sel, i) => $(sel).classList.toggle("hidden", i + 1 !== n));
   renderStepIndicator();
-  if (n === STEP_SCHEDULE && !$("#dateInput").value && !$("#slotsGrid").children.length) {
+  if (n === STEP_SCHEDULE) {
     $("#dateInput").min = new Date().toISOString().split("T")[0];
-    $("#slotHint").textContent = "Elige una fecha para ver horarios.";
-    show("#slotHint");
+    if (!$("#dateInput").value) {
+      $("#slotHint").textContent = "Elige una fecha para ver horarios.";
+      show("#slotHint");
+    } else {
+      loadSlots();
+    }
   }
 }
 
@@ -191,6 +195,7 @@ function resetWizard() {
   selectedService = null; selectedSlot = null; slotButtons = [];
   $("#slotsGrid").innerHTML = "";
   $("#dateInput").value = "";
+  $("#dayHint").textContent = ""; hide("#dayHint");
   $("#nextBtn1").disabled = true;
   $("#nextBtn2").disabled = true;
   hide("#step1Hint"); hide("#step2Hint"); hide("#slotHint");
@@ -243,13 +248,14 @@ async function loadSlots() {
   if (!selectedService || !$("#dateInput").value) return;
   const day = $("#dateInput").value;
   $("#slotHint").textContent = "Cargando horarios…"; show("#slotHint");
+  $("#dayHint").textContent = ""; hide("#dayHint");
   $("#slotsGrid").innerHTML = "";
   slotButtons = []; selectedSlot = null; $("#nextBtn2").disabled = true; hide("#step2Hint");
   try {
     const slots = await api(`/appointments/slots?service_id=${selectedService.id}&day=${day}`);
     hide("#slotHint");
     if (!slots.length) {
-      $("#slotsGrid").innerHTML = '<p class="small muted" style="grid-column:1/-1;">No hay horarios disponibles este día.</p>';
+      $("#slotsGrid").innerHTML = '<p class="small muted" style="grid-column:1/-1;">No hay horarios disponibles este día. Prueba otra fecha.</p>';
       return;
     }
     slots.forEach((s) => {

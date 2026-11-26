@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from app.config import settings
 from app.database import get_session
 from app.models import (
+    AgendaSettings,
     Appointment,
     AppointmentStatus,
     Role,
@@ -32,13 +33,31 @@ from app.security import get_current_user
 router = APIRouter(tags=["appointments"])
 
 
-def _parse_time(value: str) -> time:
-    """Convierte 'HH:MM' en un objeto time; fallback 09:00 si es invalido."""
+def _parse_time(value: str, fallback: time = time(9, 0)) -> time:
+    """Convierte 'HH:MM' en un objeto time; fallback si es invalido."""
     try:
         hh, mm = value.strip().split(":")
         return time(int(hh), int(mm))
     except (ValueError, AttributeError):
-        return time(9, 0)
+        return fallback
+
+
+def _get_agenda_settings(session: Session) -> AgendaSettings:
+    agenda = session.get(AgendaSettings, 1)
+    if agenda is None:
+        agenda = AgendaSettings(
+            id=1,
+            start_time=settings.agenda_start,
+            end_time=settings.agenda_end,
+            step_minutes=settings.agenda_step_minutes,
+            lunch_start=settings.agenda_lunch_start,
+            lunch_end=settings.agenda_lunch_end,
+            working_days="0,1,2,3,4,5",
+        )
+        session.add(agenda)
+        session.commit()
+        session.refresh(agenda)
+    return agenda
 
 
 def _to_appointment_read(appt: Appointment) -> AppointmentRead:
@@ -87,54 +106,35 @@ def _build_slots_for_day(
     service: Service,
     session: Session,
 ) -> list[Slot]:
-    """Genera franjas libres para un dia teniendo en cuenta la duracion.
-
-    La agenda esta abierta de 09:00 a 20:00. Se genera un slot cada 30 min
-    y se excluyen los que cruzan con citas activas o con la franja de
-    almuerzo (13:00-14:00).
-    """
+    """Genera franjas libres para un día según configuración de agenda."""
     if service.duration_minutes <= 0:
         return []
 
-    day_start = datetime.combine(
-        day, _parse_time(settings.agenda_start), tzinfo=timezone.utc
-    )
-    day_end = datetime.combine(
-        day, _parse_time(settings.agenda_end), tzinfo=timezone.utc
-    )
-    lunch_start = (
-        datetime.combine(
-            day,
-            _parse_time(settings.agenda_lunch_start),
-            tzinfo=timezone.utc,
-        )
-        if settings.agenda_lunch_start
-        else None
-    )
-    lunch_end = (
-        datetime.combine(
-            day,
-            _parse_time(settings.agenda_lunch_end),
-            tzinfo=timezone.utc,
-        )
-        if settings.agenda_lunch_end
-        else None
-    )
+    agenda = _get_agenda_settings(session)
+    working_days = {int(x) for x in agenda.working_days.split(",") if x.strip().isdigit()}
+    if day.weekday() not in working_days:
+        return []
 
-    step = timedelta(minutes=settings.agenda_step_minutes)
+    day_start = datetime.combine(day, _parse_time(agenda.start_time, time(9, 0)), tzinfo=timezone.utc)
+    day_end = datetime.combine(day, _parse_time(agenda.end_time, time(20, 0)), tzinfo=timezone.utc)
+    if day_end <= day_start:
+        return []
+
+    lunch_start = lunch_end = None
+    if agenda.lunch_start and agenda.lunch_end:
+        lunch_start = datetime.combine(day, _parse_time(agenda.lunch_start, time(13, 0)), tzinfo=timezone.utc)
+        lunch_end = datetime.combine(day, _parse_time(agenda.lunch_end, time(14, 0)), tzinfo=timezone.utc)
+        if lunch_end <= lunch_start:
+            lunch_start = lunch_end = None
+
+    step = timedelta(minutes=max(5, int(agenda.step_minutes or 30)))
     duration = timedelta(minutes=service.duration_minutes)
     slots: list[Slot] = []
     cursor = day_start
 
     while cursor + duration <= day_end:
         slot_end = cursor + duration
-        # Omitir franjas que caigan dentro del horario de almuerzo (si existe).
-        if (
-            lunch_start is not None
-            and lunch_end is not None
-            and slot_end > lunch_start
-            and cursor < lunch_end
-        ):
+        if lunch_start and lunch_end and slot_end > lunch_start and cursor < lunch_end:
             cursor += step
             continue
         if not _overlapping(cursor, slot_end, session):

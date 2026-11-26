@@ -135,6 +135,25 @@ class Slot(SQLModel):
     ends_at: datetime
 
 
+class AgendaSettingsRead(SQLModel):
+    start_time: str
+    end_time: str
+    step_minutes: int
+    lunch_start: str | None = None
+    lunch_end: str | None = None
+    working_days: list[int]
+    updated_at: datetime | None = None
+
+
+class AgendaSettingsUpdate(SQLModel):
+    start_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    end_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    step_minutes: int = Field(ge=5, le=240)
+    lunch_start: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    lunch_end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    working_days: list[int] = Field(min_length=1)
+
+
 # --------------------------------------------------------------------------
 # Reportes admin
 # --------------------------------------------------------------------------

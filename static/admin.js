@@ -55,7 +55,7 @@ function showPanel(name) {
   $(`#panel-${name}`)?.classList.remove("hidden");
   $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
 }
-function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125e"; }
+function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125f"; }
 
 // Modal
 let modalOkHandler = null;
@@ -429,6 +429,40 @@ async function loadReports() {
   }
 }
 
+// Agenda / horarios
+const WEEK_DAYS = [["0","Lun"],["1","Mar"],["2","Mié"],["3","Jue"],["4","Vie"],["5","Sáb"],["6","Dom"]];
+function renderAgendaDays(selected = [0,1,2,3,4,5]) {
+  const ctn = $("#agendaDays"); if (!ctn) return;
+  const set = new Set(selected.map(String));
+  ctn.innerHTML = WEEK_DAYS.map(([v,l]) => `<label class="check-row" style="margin:0;"><input type="checkbox" class="agenda-day" value="${v}" ${set.has(v)?"checked":""}/> ${l}</label>`).join("");
+}
+async function loadAgendaSettings() {
+  try {
+    const a = await api("/admin/agenda");
+    $("#agendaStart").value = a.start_time || "09:00";
+    $("#agendaEnd").value = a.end_time || "20:00";
+    $("#agendaStep").value = a.step_minutes || 30;
+    $("#agendaLunchStart").value = a.lunch_start || "";
+    $("#agendaLunchEnd").value = a.lunch_end || "";
+    renderAgendaDays(a.working_days || [0,1,2,3,4,5]);
+  } catch (err) { toast(err.message); }
+}
+async function saveAgendaSettings() {
+  const days = [...document.querySelectorAll(".agenda-day:checked")].map((e) => Number(e.value));
+  const body = {
+    start_time: $("#agendaStart").value,
+    end_time: $("#agendaEnd").value,
+    step_minutes: Number($("#agendaStep").value || 30),
+    lunch_start: $("#agendaLunchStart").value || null,
+    lunch_end: $("#agendaLunchEnd").value || null,
+    working_days: days,
+  };
+  try {
+    await api("/admin/agenda", { method: "PUT", body });
+    toast("Horarios guardados");
+  } catch (err) { toast(err.message); }
+}
+
 // Servicios
 async function loadServices() {
   const ctn = $("#serviceGrid");
@@ -544,13 +578,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tab === "citas") loadAppointments($("#filterStatus")?.value || "");
     else if (tab === "pacientes") loadPatients($("#patientSearch")?.value || "");
     else if (tab === "reportes") loadReports();
-    else if (tab === "servicios") loadServices();
+    else if (tab === "servicios") { loadAgendaSettings(); loadServices(); }
   }));
   $("#adminLogout")?.addEventListener("click", logout);
   $("#adminLogoutM")?.addEventListener("click", logout);
   $("#filterStatus").addEventListener("change", (e) => loadAppointments(e.target.value));
   $("#newPatientBtn").addEventListener("click", () => openPatientForm());
   $("#newServiceBtn").addEventListener("click", () => openServiceForm());
+  $("#saveAgendaBtn")?.addEventListener("click", saveAgendaSettings);
+  renderAgendaDays();
   $("#patientSearch").addEventListener("input", debounce((e) => loadPatients(e.target.value), 300));
   $("#btnLoadReport")?.addEventListener("click", loadReports);
   const rd = $("#reportDate"); if (rd && !rd.value) rd.value = new Date().toISOString().slice(0,10);
