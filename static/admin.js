@@ -55,7 +55,7 @@ function showPanel(name) {
   $(`#panel-${name}`)?.classList.remove("hidden");
   $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
 }
-function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125f"; }
+function setVersionBadge() { const el = $("#appVersion"); if (el) el.textContent = "v20261125g"; }
 
 // Modal
 let modalOkHandler = null;
@@ -552,6 +552,10 @@ function toggleAdminNotifPanel() {
 }
 async function markAdminNotifRead(nid) { try { await api(`/notifications/${nid}/read`, { method: "PATCH" }); loadAdminNotifCount(); loadAdminNotifications(); } catch {} }
 async function markAllAdminNotifsRead() { try { await api("/notifications/read-all", { method: "PATCH" }); loadAdminNotifCount(); loadAdminNotifications(); } catch(e){ toast(e.message); } }
+async function clearAllAdminNotifs() {
+  if (!confirm("¿Eliminar todas las notificaciones?")) return;
+  try { await api("/notifications", { method: "DELETE" }); loadAdminNotifCount(); loadAdminNotifications(); toast("Notificaciones limpiadas"); } catch(e){ toast(e.message); }
+}
 
 document.addEventListener("click", (e) => {
   const panel = $("#adminNotifPanel");
@@ -607,6 +611,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#adminNotifBtn")?.addEventListener("click", toggleAdminNotifPanel);
   $("#adminNotifBtnM")?.addEventListener("click", toggleAdminNotifPanel);
   $("#adminNotifReadAll")?.addEventListener("click", markAllAdminNotifsRead);
+  $("#adminNotifClearAll")?.addEventListener("click", clearAllAdminNotifs);
   $("#adminNotifList")?.addEventListener("click", (e) => { const row = e.target.closest("[data-nid]"); if (row) markAdminNotifRead(row.dataset.nid); });
 
   showPanel("citas");

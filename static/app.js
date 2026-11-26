@@ -383,6 +383,10 @@ async function markNotifRead(nid) {
 async function markAllNotifsRead() {
   try { await api("/notifications/read-all", { method: "PATCH" }); loadNotifCount(); loadNotifications(); } catch (e) { toast(e.message); }
 }
+async function clearAllNotifs() {
+  if (!confirm("¿Eliminar todas las notificaciones?")) return;
+  try { await api("/notifications", { method: "DELETE" }); loadNotifCount(); loadNotifications(); toast("Notificaciones limpiadas"); } catch (e) { toast(e.message); }
+}
 
 document.addEventListener("click", (e) => {
   const panel = $("#notifPanel");
@@ -423,6 +427,7 @@ function init() {
   $$("#clientTabBook, #clientTabAppointments").forEach((b) => b.addEventListener("click", () => switchClientTab(b.dataset.tab)));
   $("#notifBtn").addEventListener("click", toggleNotifPanel);
   $("#notifReadAll").addEventListener("click", markAllNotifsRead);
+  $("#notifClearAll").addEventListener("click", clearAllNotifs);
   $("#notifList").addEventListener("click", (e) => {
     const row = e.target.closest("[data-nid]");
     if (row) markNotifRead(row.dataset.nid);

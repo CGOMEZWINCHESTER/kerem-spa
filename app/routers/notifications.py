@@ -80,3 +80,17 @@ def mark_all_read(
         session.add(note)
     session.commit()
     return {"updated": len(notes)}
+
+
+@router.delete("", response_model=dict[str, int])
+def clear_notifications(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, int]:
+    """Elimina todas las notificaciones del usuario actual."""
+    stmt = select(Notification).where(Notification.user_id == current_user.id)
+    notes = list(session.exec(stmt).all())
+    for note in notes:
+        session.delete(note)
+    session.commit()
+    return {"deleted": len(notes)}

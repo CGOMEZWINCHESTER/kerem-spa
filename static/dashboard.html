@@ -11,7 +11,7 @@
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="icon" href="/static/icons/icon-192.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/static/icons/icon-192.svg" />
-  <link rel="stylesheet" href="/static/styles.css?v=20261125f" />
+  <link rel="stylesheet" href="/static/styles.css?v=20261125g" />
 </head>
 <body>
   <div class="admin-layout">
@@ -28,7 +28,7 @@
       <button data-tab="reportes" class="side-link nav-btn">Reportes</button>
       <button data-tab="servicios" class="side-link nav-btn">Servicios</button>
       <div class="side-spacer"></div>
-      <div id="appVersion" class="small muted" style="padding:8px 12px;">v20261125c</div>
+      <div id="appVersion" class="small muted" style="padding:8px 12px;">v20261125d</div>
       <button id="adminNotifBtn" class="side-link" style="position:relative;">
         Notificaciones
         <span id="adminNotifBadge" class="notif-badge hidden" style="top:8px;right:10px;">0</span>
@@ -54,7 +54,10 @@
             <div id="adminNotifPanel" class="notif-panel hidden">
               <div class="notif-head">
                 <span>Notificaciones</span>
-                <button id="adminNotifReadAll" class="small" style="color:var(--brand);">Marcar leídas</button>
+                <div class="flex gap-2 items-center">
+                  <button id="adminNotifReadAll" class="small" style="color:var(--brand);">Marcar leídas</button>
+                  <button id="adminNotifClearAll" class="small" style="color:#ffb4b4;">Limpiar</button>
+                </div>
               </div>
               <div id="adminNotifList" class="notif-list"><div class="empty-state" style="padding:20px;"><p class="small">Cargando…</p></div></div>
             </div>
@@ -180,6 +183,6 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="/static/admin.js?v=20261125c"></script>
+  <script src="/static/admin.js?v=20261125d"></script>
 </body>
 </html>
