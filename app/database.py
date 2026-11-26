@@ -9,6 +9,11 @@ from app.config import settings
 _db_url = settings.database_url
 _connect_args = {"check_same_thread": False} if _db_url.startswith("sqlite") else {}
 
+# Supabase transaction pooler (6543/pgbouncer) no soporta prepared statements
+# de psycopg; desactivarlos evita DuplicatePreparedStatement.
+if not _db_url.startswith("sqlite"):
+    _connect_args["prepare_threshold"] = None
+
 _engine_kwargs = {
     "echo": False,
     "pool_pre_ping": True,
