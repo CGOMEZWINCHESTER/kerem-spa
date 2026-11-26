@@ -458,11 +458,28 @@ def get_reports(
 # Agenda / horarios disponibles
 # --------------------------------------------------------------------------
 def _get_or_create_agenda(session: Session) -> AgendaSettings:
-    agenda = session.get(AgendaSettings, 1)
-    if agenda is None:
-        from app.config import settings
+    try:
+        agenda = session.get(AgendaSettings, 1)
+        if agenda is None:
+            from app.config import settings
 
-        agenda = AgendaSettings(
+            agenda = AgendaSettings(
+                id=1,
+                start_time=settings.agenda_start,
+                end_time=settings.agenda_end,
+                step_minutes=settings.agenda_step_minutes,
+                lunch_start=settings.agenda_lunch_start,
+                lunch_end=settings.agenda_lunch_end,
+                working_days="0,1,2,3,4,5",
+            )
+            session.add(agenda)
+            session.commit()
+            session.refresh(agenda)
+        return agenda
+    except Exception:
+        session.rollback()
+        from app.config import settings
+        return AgendaSettings(
             id=1,
             start_time=settings.agenda_start,
             end_time=settings.agenda_end,
@@ -471,10 +488,6 @@ def _get_or_create_agenda(session: Session) -> AgendaSettings:
             lunch_end=settings.agenda_lunch_end,
             working_days="0,1,2,3,4,5",
         )
-        session.add(agenda)
-        session.commit()
-        session.refresh(agenda)
-    return agenda
 
 
 def _agenda_to_read(agenda: AgendaSettings) -> AgendaSettingsRead:

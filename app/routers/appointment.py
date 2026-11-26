@@ -43,9 +43,26 @@ def _parse_time(value: str, fallback: time = time(9, 0)) -> time:
 
 
 def _get_agenda_settings(session: Session) -> AgendaSettings:
-    agenda = session.get(AgendaSettings, 1)
-    if agenda is None:
-        agenda = AgendaSettings(
+    try:
+        agenda = session.get(AgendaSettings, 1)
+        if agenda is None:
+            agenda = AgendaSettings(
+                id=1,
+                start_time=settings.agenda_start,
+                end_time=settings.agenda_end,
+                step_minutes=settings.agenda_step_minutes,
+                lunch_start=settings.agenda_lunch_start,
+                lunch_end=settings.agenda_lunch_end,
+                working_days="0,1,2,3,4,5",
+            )
+            session.add(agenda)
+            session.commit()
+            session.refresh(agenda)
+        return agenda
+    except Exception:
+        session.rollback()
+        # Fallback when table is missing (migration pending) or DB unavailable
+        return AgendaSettings(
             id=1,
             start_time=settings.agenda_start,
             end_time=settings.agenda_end,
@@ -54,10 +71,6 @@ def _get_agenda_settings(session: Session) -> AgendaSettings:
             lunch_end=settings.agenda_lunch_end,
             working_days="0,1,2,3,4,5",
         )
-        session.add(agenda)
-        session.commit()
-        session.refresh(agenda)
-    return agenda
 
 
 def _to_appointment_read(appt: Appointment) -> AppointmentRead:
